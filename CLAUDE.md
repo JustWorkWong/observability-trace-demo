@@ -5,6 +5,7 @@
 ```text
 observability-trace-demo/
 ├─ ObservabilityTraceDemo.sln
+├─ global.json
 ├─ CLAUDE.md
 ├─ README.md
 ├─ docs/
@@ -38,7 +39,8 @@ observability-trace-demo/
 - `src/ObservabilityTraceDemo.AppHost`
   - 本地业务拓扑编排器。
   - 拉起 `Gateway / OrderService / InventoryService / PostgreSQL / Redis`。
-  - 统一给业务服务下发 `OTEL_EXPORTER_OTLP_ENDPOINT`。
+  - 保留 Aspire 注入的 `OTEL_EXPORTER_OTLP_ENDPOINT`，让服务把 telemetry 发回 Aspire Dashboard。
+  - 额外下发 `OpenTelemetry__CollectorOtlpEndpoint`，让同一份 telemetry 进入外部 Collector / Grafana 栈。
 
 - `src/ObservabilityTraceDemo.ServiceDefaults`
   - 共享的服务底座。
@@ -104,13 +106,13 @@ OrderService / InventoryService / Gateway
 - `Gateway`
   - `gateway.route` ActivitySource
   - `gateway_requests_total`
-  - `gateway_request_duration_ms`
+  - `gateway_request_duration_seconds`
 
 - `OrderService`
   - `order.create` ActivitySource
   - `orders_created_total`
   - `orders_failed_total`
-  - `order_create_duration_ms`
+  - `order_create_duration_seconds`
 
 - `InventoryService`
   - `inventory.lookup`
@@ -118,12 +120,13 @@ OrderService / InventoryService / Gateway
   - `inventory.cache.populate`
   - `inventory_cache_hit_total`
   - `inventory_cache_miss_total`
-  - `inventory_lookup_duration_ms`
+  - `inventory_lookup_duration_seconds`
 
 - 自动采集
   - ASP.NET Core 入站请求
   - HttpClient 出站请求
   - EF Core / Npgsql 数据库访问
+  - StackExchange.Redis 客户端调用
   - Runtime 指标
 
 ## 设计取舍

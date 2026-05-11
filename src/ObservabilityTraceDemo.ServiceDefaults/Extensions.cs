@@ -139,7 +139,8 @@ public static class Extensions
         this TBuilder builder,
         IReadOnlyCollection<string> activitySources,
         IReadOnlyCollection<string> meters,
-        bool includeEntityFramework = false) where TBuilder : IHostApplicationBuilder
+        bool includeEntityFramework = false,
+        bool includeRedis = false) where TBuilder : IHostApplicationBuilder
     {
         /*--------------------------------------------------------------------------
          * 这里用于“每个业务项目自己的补充观测配置”。
@@ -149,6 +150,7 @@ public static class Extensions
          * - 我有哪些自定义 ActivitySource
          * - 我有哪些自定义 Meter
          * - 我是否需要 EF Core 自动采集
+         * - 我是否需要 StackExchange.Redis 自动采集
          *
          * 这样既能共享底座，又不会把 Gateway / Order / Inventory 的差异揉烂。
          *------------------------------------------------------------------------*/
@@ -169,6 +171,17 @@ public static class Extensions
                         {
                             activity.SetTag("db.statement", command.CommandText);
                         };
+                    });
+                }
+
+                if (includeRedis)
+                {
+                    // Redis instrumentation 会从 DI 中解析 IConnectionMultiplexer。
+                    // 只有 InventoryService 注册了 Redis 连接，所以只在该服务显式开启。
+                    tracing.AddRedisInstrumentation(options =>
+                    {
+                        // 默认不记录完整 Redis 参数，避免把 key/value 这类潜在敏感信息写入 trace。
+                        options.SetVerboseDatabaseStatements = false;
                     });
                 }
             })

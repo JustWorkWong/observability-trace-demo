@@ -265,16 +265,43 @@ sum(rate(inventory_cache_hit_total[5m]))
 
 一句话：指标用来判断趋势和聚合，不用来替代日志全文检索。
 
-## 10. 常见误区
+## 10. P95 / P99 是默认就有的吗
 
-### 10.1 直接看 Counter 原始值
+结论：P95 / P99 不是 Prometheus 里天然存在的独立指标，也不是 Grafana 自动生成的字段。
+
+它们来自两步：
+
+1. 应用或 instrumentation 暴露 histogram 指标，例如：
+   - `http_server_request_duration_seconds_bucket`
+   - `gateway_request_duration_seconds_bucket`
+   - `order_create_duration_seconds_bucket`
+   - `inventory_lookup_duration_seconds_bucket`
+2. Grafana / Prometheus 用 PromQL 计算分位数，例如：
+
+```promql
+histogram_quantile(
+  0.95,
+  sum(rate(http_server_request_duration_seconds_bucket[5m])) by (le, service_name)
+)
+```
+
+所以生产上要注意：
+
+- 如果只暴露 counter，没有 bucket，就算不出 P95 / P99。
+- ASP.NET Core HTTP 耗时指标由 OpenTelemetry ASP.NET Core instrumentation 自动提供 histogram。
+- 本仓库的业务耗时指标由代码里的 `Meter.CreateHistogram<double>(...)` 显式创建。
+- P95 / P99 的准确性依赖 bucket 分布、采样窗口和流量规模。低流量服务上 P99 很容易抖动。
+
+## 11. 常见误区
+
+### 11.1 直接看 Counter 原始值
 
 Counter 只会上升。生产里一般看：
 
 - `rate(counter[5m])`
 - `increase(counter[1h])`
 
-### 10.2 只看平均耗时
+### 11.2 只看平均耗时
 
 平均值会掩盖尾部慢请求。生产里更常看：
 
@@ -282,11 +309,11 @@ Counter 只会上升。生产里一般看：
 - P99
 - 最大耗时样本对应的 trace
 
-### 10.3 只看应用，不看观测平台
+### 11.3 只看应用，不看观测平台
 
 如果 Collector、Prometheus、Loki 或 Tempo 自身异常，Grafana 可能只是在显示“不完整的事实”。
 
-### 10.4 把 demo 做法原样搬到生产
+### 11.4 把 demo 做法原样搬到生产
 
 demo 为了教学会尽量多开信号。生产需要额外考虑：
 

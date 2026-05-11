@@ -47,11 +47,16 @@
       "targets": [
         {
           "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{service_namespace=\"observability-trace-demo\",service_name=~\"$app_service\"}[5m])) by (le, service_name))",
-          "legendFormat": "{{service_name}}",
+          "legendFormat": "{{service_name}} p95",
           "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(http_server_request_duration_seconds_bucket{service_namespace=\"observability-trace-demo\",service_name=~\"$app_service\"}[5m])) by (le, service_name))",
+          "legendFormat": "{{service_name}} p99",
+          "refId": "B"
         }
       ],
-      "title": "按服务看请求耗时 P95",
+      "title": "按服务看请求耗时 P95 / P99",
       "type": "timeseries"
     },
     {
@@ -62,12 +67,12 @@
       "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
       "targets": [
         {
-          "expr": "sum(up{job=~\"observability-trace-demo/.+\",service_name=~\"$app_service\"}) by (service_name)",
+          "expr": "group by (service_name) (http_server_request_duration_seconds_count{service_namespace=\"observability-trace-demo\",service_name=~\"$app_service\"})",
           "legendFormat": "{{service_name}}",
           "refId": "A"
         }
       ],
-      "title": "按服务看存活状态",
+      "title": "按服务看 HTTP 指标存在性",
       "type": "timeseries"
     },
     {
@@ -75,7 +80,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
       "id": 5,
       "options": {
-        "content": "使用顶部 `业务服务` 变量切换查看范围。\n\n最佳实践：\n- 先按服务筛选，再看吞吐、错误率、P95。\n- 不要在一个图里同时混入 Gateway、业务服务和平台组件。\n- 平台组件应单独看 Collector、Prometheus、Loki、Tempo。",
+        "content": "使用顶部 `业务服务` 变量切换查看范围。\n\n最佳实践：\n- 先按服务筛选，再看吞吐、错误率、P95/P99。\n- P95/P99 不是独立采集项，而是基于 histogram bucket 计算出来的分位数。\n- `HTTP 指标存在性` 只表示该服务最近向 Prometheus 暴露过 HTTP 指标，不等同于健康检查。\n- 平台组件应单独看 Collector、Prometheus、Loki、Tempo。",
         "mode": "markdown"
       },
       "title": "使用说明",

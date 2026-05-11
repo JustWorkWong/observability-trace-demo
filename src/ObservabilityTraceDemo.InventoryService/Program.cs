@@ -11,7 +11,8 @@ builder.AddServiceDefaults();
 builder.AddProjectOpenTelemetry(
     activitySources: [InventoryTelemetry.ActivitySourceName],
     meters: [InventoryTelemetry.MeterName],
-    includeEntityFramework: true);
+    includeEntityFramework: true,
+    includeRedis: true);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
