@@ -1,4 +1,4 @@
-{
+﻿{
   "annotations": { "list": [] },
   "editable": true,
   "graphTooltip": 0,
@@ -9,8 +9,8 @@
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
       "id": 1,
       "targets": [
-        { "expr": "sum(rate(inventory_cache_hit_total[5m]))", "legendFormat": "hit", "refId": "A" },
-        { "expr": "sum(rate(inventory_cache_miss_total[5m]))", "legendFormat": "miss", "refId": "B" }
+        { "expr": "sum(rate(inventory_cache_hit_total{service_name=\"inventoryservice\"}[5m]))", "legendFormat": "hit", "refId": "A" },
+        { "expr": "sum(rate(inventory_cache_miss_total{service_name=\"inventoryservice\"}[5m]))", "legendFormat": "miss", "refId": "B" }
       ],
       "title": "缓存命中 / 未命中速率",
       "type": "timeseries"
@@ -21,18 +21,18 @@
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
       "id": 2,
       "targets": [
-        { "expr": "sum(rate(inventory_cache_hit_total[5m])) / (sum(rate(inventory_cache_hit_total[5m])) + sum(rate(inventory_cache_miss_total[5m])))", "legendFormat": "cache hit ratio", "refId": "A" }
+        { "expr": "sum(rate(inventory_cache_hit_total{service_name=\"inventoryservice\"}[5m])) / clamp_min(sum(rate(inventory_cache_hit_total{service_name=\"inventoryservice\"}[5m])) + sum(rate(inventory_cache_miss_total{service_name=\"inventoryservice\"}[5m])), 0.0001)", "legendFormat": "cache hit ratio", "refId": "A" }
       ],
       "title": "缓存命中率",
       "type": "timeseries"
     },
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
       "id": 3,
       "targets": [
-        { "expr": "histogram_quantile(0.95, sum(rate(inventory_lookup_duration_ms_bucket[5m])) by (le))", "legendFormat": "p95", "refId": "A" }
+        { "expr": "histogram_quantile(0.95, sum(rate(inventory_lookup_duration_seconds_bucket{service_name=\"inventoryservice\"}[5m])) by (le))", "legendFormat": "p95", "refId": "A" }
       ],
       "title": "库存查询耗时 P95",
       "type": "timeseries"
@@ -45,5 +45,5 @@
   "time": { "from": "now-30m", "to": "now" },
   "title": "库存缓存视图",
   "uid": "inventory-cache-view",
-  "version": 1
+  "version": 3
 }

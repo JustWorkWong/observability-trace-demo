@@ -1,4 +1,4 @@
-{
+﻿{
   "annotations": { "list": [] },
   "editable": true,
   "graphTooltip": 0,
@@ -9,33 +9,33 @@
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
       "id": 1,
       "targets": [
-        { "expr": "sum(rate(orders_created_total[5m]))", "legendFormat": "成功", "refId": "A" },
-        { "expr": "sum(rate(orders_failed_total[5m]))", "legendFormat": "失败", "refId": "B" }
+        { "expr": "sum(rate(orders_created_total{service_name=\"orderservice\"}[5m]))", "legendFormat": "成功订单", "refId": "A" },
+        { "expr": "sum(rate(orders_failed_total{service_name=\"orderservice\"}[5m]))", "legendFormat": "失败订单", "refId": "B" }
       ],
       "title": "订单成功 / 失败速率",
       "type": "timeseries"
     },
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
       "id": 2,
       "targets": [
-        { "expr": "histogram_quantile(0.95, sum(rate(order_create_duration_ms_bucket[5m])) by (le))", "legendFormat": "p95", "refId": "A" },
-        { "expr": "histogram_quantile(0.99, sum(rate(order_create_duration_ms_bucket[5m])) by (le))", "legendFormat": "p99", "refId": "B" }
+        { "expr": "histogram_quantile(0.95, sum(rate(order_create_duration_seconds_bucket{service_name=\"orderservice\"}[5m])) by (le))", "legendFormat": "p95", "refId": "A" },
+        { "expr": "histogram_quantile(0.99, sum(rate(order_create_duration_seconds_bucket{service_name=\"orderservice\"}[5m])) by (le))", "legendFormat": "p99", "refId": "B" }
       ],
       "title": "订单创建耗时 P95 / P99",
       "type": "timeseries"
     },
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
       "id": 3,
       "targets": [
-        { "expr": "histogram_quantile(0.95, sum(rate(http_client_request_duration_seconds_bucket{service_name=\"orderservice\"}[5m])) by (le)) * 1000", "legendFormat": "order -> inventory p95", "refId": "A" }
+        { "expr": "histogram_quantile(0.95, sum(rate(http_client_request_duration_seconds_bucket{service_name=\"orderservice\"}[5m])) by (le))", "legendFormat": "order -> inventory p95", "refId": "A" }
       ],
-      "title": "跨服务调用耗时",
+      "title": "下游库存调用耗时",
       "type": "timeseries"
     }
   ],
@@ -46,5 +46,5 @@
   "time": { "from": "now-30m", "to": "now" },
   "title": "订单链路",
   "uid": "order-flow",
-  "version": 1
+  "version": 3
 }

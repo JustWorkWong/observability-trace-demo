@@ -30,6 +30,7 @@ public sealed class InventoryQueryService
 
         var startedAt = Stopwatch.GetTimestamp();
         InventorySnapshot? cachedSnapshot;
+
         using (var cacheReadActivity = InventoryTelemetry.ActivitySource.StartActivity("inventory.cache.read"))
         {
             cacheReadActivity?.SetTag("db.system", "redis");
@@ -41,18 +42,21 @@ public sealed class InventoryQueryService
         if (cachedSnapshot is not null)
         {
             activity?.SetTag("cache.hit", true);
-            InventoryTelemetry.CacheHitCounter.Add(1, KeyValuePair.Create<string, object?>("inventory.sku", sku));
-            InventoryTelemetry.LookupDuration.Record(Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds);
+            InventoryTelemetry.CacheHitCounter.Add(1);
+            InventoryTelemetry.LookupDuration.Record(Stopwatch.GetElapsedTime(startedAt).TotalSeconds);
+
             _logger.LogInformation(
                 "库存缓存命中。Sku={Sku}, AvailableQuantity={AvailableQuantity}, TraceId={TraceId}",
                 sku,
                 cachedSnapshot.AvailableQuantity,
                 activity?.TraceId.ToString());
+
             return new InventoryLookupResult(true, true, sku, cachedSnapshot.AvailableQuantity);
         }
 
         activity?.SetTag("cache.hit", false);
-        InventoryTelemetry.CacheMissCounter.Add(1, KeyValuePair.Create<string, object?>("inventory.sku", sku));
+        InventoryTelemetry.CacheMissCounter.Add(1);
+
         _logger.LogInformation(
             "库存缓存未命中，准备回源数据库。Sku={Sku}, TraceId={TraceId}",
             sku,
@@ -63,8 +67,13 @@ public sealed class InventoryQueryService
         {
             activity?.SetTag("error.type", "business.inventory_not_found");
             activity?.SetStatus(ActivityStatusCode.Error, "inventory_not_found");
-            InventoryTelemetry.LookupDuration.Record(Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds);
-            _logger.LogWarning("库存不存在。Sku={Sku}, TraceId={TraceId}", sku, activity?.TraceId.ToString());
+            InventoryTelemetry.LookupDuration.Record(Stopwatch.GetElapsedTime(startedAt).TotalSeconds);
+
+            _logger.LogWarning(
+                "库存不存在。Sku={Sku}, TraceId={TraceId}",
+                sku,
+                activity?.TraceId.ToString());
+
             return new InventoryLookupResult(false, false, sku, 0);
         }
 
@@ -76,7 +85,8 @@ public sealed class InventoryQueryService
             await _cache.SetAsync(persistedSnapshot, cancellationToken);
         }
 
-        InventoryTelemetry.LookupDuration.Record(Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds);
+        InventoryTelemetry.LookupDuration.Record(Stopwatch.GetElapsedTime(startedAt).TotalSeconds);
+
         _logger.LogInformation(
             "库存数据库回源完成，并已回填缓存。Sku={Sku}, AvailableQuantity={AvailableQuantity}, TraceId={TraceId}",
             sku,

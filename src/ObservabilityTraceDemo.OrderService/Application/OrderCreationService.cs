@@ -42,22 +42,29 @@ public sealed class OrderCreationService
             activity?.SetTag("error.type", "business.insufficient_inventory");
             activity?.SetTag("error.message", "库存不足，无法创建订单。");
             activity?.SetStatus(ActivityStatusCode.Error, "insufficient_inventory");
-            OrderTelemetry.OrdersFailed.Add(1, KeyValuePair.Create<string, object?>("order.sku", request.Sku));
-            OrderTelemetry.OrderDuration.Record(Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds);
+
+            // 生产场景里不把 sku 这种潜在高基数字段放进指标标签，避免时间序列爆炸。
+            OrderTelemetry.OrdersFailed.Add(1);
+            OrderTelemetry.OrderDuration.Record(Stopwatch.GetElapsedTime(startedAt).TotalSeconds);
+
             _logger.LogWarning(
                 "库存不足，订单创建失败。Sku={Sku}, RequestedQuantity={RequestedQuantity}, AvailableQuantity={AvailableQuantity}, TraceId={TraceId}",
                 request.Sku,
                 request.Quantity,
                 inventory.AvailableQuantity,
                 activity?.TraceId.ToString());
+
             return new OrderCreationResult(false, Guid.Empty, "insufficient_inventory", inventory.AvailableQuantity);
         }
 
         var order = new OrderRecord(Guid.NewGuid(), request.Sku, request.Quantity, request.CustomerId, DateTimeOffset.UtcNow);
         activity?.SetTag("order.id", order.OrderId);
+
         await _repository.SaveAsync(order, cancellationToken);
-        OrderTelemetry.OrdersCreated.Add(1, KeyValuePair.Create<string, object?>("order.sku", request.Sku));
-        OrderTelemetry.OrderDuration.Record(Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds);
+
+        OrderTelemetry.OrdersCreated.Add(1);
+        OrderTelemetry.OrderDuration.Record(Stopwatch.GetElapsedTime(startedAt).TotalSeconds);
+
         _logger.LogInformation(
             "订单创建成功。OrderId={OrderId}, Sku={Sku}, Quantity={Quantity}, TraceId={TraceId}",
             order.OrderId,

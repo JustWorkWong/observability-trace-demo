@@ -14,15 +14,15 @@ public static class OrderTelemetry
     public static readonly Counter<long> OrdersCreated = Meter.CreateCounter<long>(
         "orders_created_total",
         unit: "{order}",
-        description: "订单创建成功总数。用于看业务吞吐和成功趋势。");
+        description: "订单创建成功总数。用于观察业务吞吐与成功趋势。");
 
     public static readonly Counter<long> OrdersFailed = Meter.CreateCounter<long>(
         "orders_failed_total",
         unit: "{order}",
-        description: "订单创建失败总数。用于看库存不足或其他业务失败趋势。");
+        description: "订单创建失败总数。用于观察库存不足或其他业务失败趋势。");
 
     public static readonly Histogram<double> OrderDuration = Meter.CreateHistogram<double>(
-        "order_create_duration_ms",
-        unit: "ms",
-        description: "订单创建耗时。用于观察跨服务调用、数据库写入对下单延迟的影响。");
+        "order_create_duration_seconds",
+        unit: "s",
+        description: "订单创建耗时。使用秒作为标准时间单位，便于与 HTTP、数据库和运行时指标统一分析。");
 }

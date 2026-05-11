@@ -229,5 +229,6 @@ docker compose down -v
 - [docs/observability-metrics-catalog.md](/E:/wfcodes/observability-trace-demo/docs/observability-metrics-catalog.md)
 - [docs/observability-trace-walkthrough.md](/E:/wfcodes/observability-trace-demo/docs/observability-trace-walkthrough.md)
 - [docs/observability-log-guide.md](/E:/wfcodes/observability-trace-demo/docs/observability-log-guide.md)
+- [docs/production-observability-operations.md](/E:/wfcodes/observability-trace-demo/docs/production-observability-operations.md)
 - [infra/README.md](/E:/wfcodes/observability-trace-demo/infra/README.md)
 - [infra/observability/README.md](/E:/wfcodes/observability-trace-demo/infra/observability/README.md)

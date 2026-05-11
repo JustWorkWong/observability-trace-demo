@@ -1,4 +1,4 @@
-{
+﻿{
   "annotations": { "list": [] },
   "editable": true,
   "fiscalYearStartMonth": 0,
@@ -8,52 +8,111 @@
   "panels": [
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
       "id": 1,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
       "targets": [
-        { "expr": "sum(up{job=~\"collector-app-metrics|collector-self|grafana|loki|tempo|prometheus\"})", "legendFormat": "活跃目标数", "refId": "A" }
+        {
+          "expr": "sum(rate(http_server_request_duration_seconds_count{service_namespace=\"observability-trace-demo\",service_name=~\"$app_service\"}[5m])) by (service_name)",
+          "legendFormat": "{{service_name}}",
+          "refId": "A"
+        }
       ],
-      "title": "存活目标总数",
+      "title": "按服务看请求吞吐",
       "type": "timeseries"
     },
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "fieldConfig": { "defaults": { "unit": "percentunit" }, "overrides": [] },
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
       "id": 2,
       "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
       "targets": [
-        { "expr": "sum(rate(gateway_requests_total[5m])) by (gateway_route_group)", "legendFormat": "{{gateway_route_group}}", "refId": "A" },
-        { "expr": "sum(rate(orders_created_total[5m]))", "legendFormat": "orders_created_total", "refId": "B" }
+        {
+          "expr": "sum(rate(http_server_request_duration_seconds_count{service_namespace=\"observability-trace-demo\",service_name=~\"$app_service\",http_response_status_code=~\"5..\"}[5m])) by (service_name) / clamp_min(sum(rate(http_server_request_duration_seconds_count{service_namespace=\"observability-trace-demo\",service_name=~\"$app_service\"}[5m])) by (service_name), 0.0001)",
+          "legendFormat": "{{service_name}}",
+          "refId": "A"
+        }
       ],
-      "title": "入口吞吐与业务吞吐",
+      "title": "按服务看 5xx 错误率",
       "type": "timeseries"
     },
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
       "id": 3,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
       "targets": [
-        { "expr": "histogram_quantile(0.95, sum(rate(gateway_request_duration_ms_bucket[5m])) by (le, gateway_route_group))", "legendFormat": "gateway p95 {{gateway_route_group}}", "refId": "A" },
-        { "expr": "histogram_quantile(0.95, sum(rate(order_create_duration_ms_bucket[5m])) by (le))", "legendFormat": "order p95", "refId": "B" },
-        { "expr": "histogram_quantile(0.95, sum(rate(inventory_lookup_duration_ms_bucket[5m])) by (le))", "legendFormat": "inventory p95", "refId": "C" }
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{service_namespace=\"observability-trace-demo\",service_name=~\"$app_service\"}[5m])) by (le, service_name))",
+          "legendFormat": "{{service_name}}",
+          "refId": "A"
+        }
       ],
-      "title": "关键耗时 P95",
+      "title": "按服务看请求耗时 P95",
       "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 4,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
+      "targets": [
+        {
+          "expr": "sum(up{job=~\"observability-trace-demo/.+\",service_name=~\"$app_service\"}) by (service_name)",
+          "legendFormat": "{{service_name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "按服务看存活状态",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 5,
+      "options": {
+        "content": "使用顶部 `业务服务` 变量切换查看范围。\n\n最佳实践：\n- 先按服务筛选，再看吞吐、错误率、P95。\n- 不要在一个图里同时混入 Gateway、业务服务和平台组件。\n- 平台组件应单独看 Collector、Prometheus、Loki、Tempo。",
+        "mode": "markdown"
+      },
+      "title": "使用说明",
+      "type": "text"
     }
   ],
   "refresh": "10s",
   "schemaVersion": 41,
   "style": "dark",
   "tags": ["observability", "overview"],
-  "templating": { "list": [] },
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "definition": "label_values(http_server_request_duration_seconds_count{service_namespace=\"observability-trace-demo\"}, service_name)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "业务服务",
+        "multi": true,
+        "name": "app_service",
+        "options": [],
+        "query": {
+          "query": "label_values(http_server_request_duration_seconds_count{service_namespace=\"observability-trace-demo\"}, service_name)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
   "time": { "from": "now-30m", "to": "now" },
   "timezone": "",
-  "title": "系统总览",
+  "title": "业务服务总览",
   "uid": "system-overview",
-  "version": 1
+  "version": 3
 }

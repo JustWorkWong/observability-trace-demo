@@ -12,10 +12,8 @@ builder.AddProjectOpenTelemetry(
 builder.Services.AddProblemDetails();
 builder.Services.AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"))
-    // 这一行是关键：
-    // YARP 默认只会把 Address 当成普通地址字符串使用，
-    // 不会自动理解 https+http://orderservice 这种服务发现 URI。
-    // 加上 ServiceDiscoveryDestinationResolver 后，Gateway 才会把这些目标解析为 Aspire 提供的下游实例地址。
+    // YARP 默认只把 Address 当作普通地址字符串处理。
+    // 加上服务发现解析器后，Gateway 才会解析 https+http://orderservice 这种地址。
     .AddServiceDiscoveryDestinationResolver();
 
 var app = builder.Build();
@@ -26,7 +24,7 @@ app.MapDefaultEndpoints();
 app.MapGet("/", () => Results.Ok(new
 {
     service = "Gateway",
-    description = "负责把 /api/orders/* 与 /api/inventory/* 转发到对应业务服务。"
+    description = "负责把 /api/orders/* 和 /api/inventory/* 转发到对应业务服务。"
 }));
 
 app.Use(async (context, next) =>
@@ -45,7 +43,7 @@ app.Use(async (context, next) =>
     var startedAt = Stopwatch.GetTimestamp();
     await next();
 
-    var durationMs = Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds;
+    var durationSeconds = Stopwatch.GetElapsedTime(startedAt).TotalSeconds;
     var routeGroup = ResolveRouteGroup(context.Request.Path);
     activity?.SetTag("gateway.route_group", routeGroup);
     activity?.SetTag("http.response.status_code", context.Response.StatusCode);
@@ -56,7 +54,7 @@ app.Use(async (context, next) =>
         new KeyValuePair<string, object?>("http.status_code", context.Response.StatusCode));
 
     GatewayTelemetry.RequestDuration.Record(
-        durationMs,
+        durationSeconds,
         new KeyValuePair<string, object?>("gateway.route_group", routeGroup),
         new KeyValuePair<string, object?>("http.status_code", context.Response.StatusCode));
 
@@ -69,12 +67,12 @@ app.Use(async (context, next) =>
     }
 
     app.Logger.LogInformation(
-        "网关转发完成。Method={Method}, Path={Path}, RouteGroup={RouteGroup}, StatusCode={StatusCode}, DurationMs={DurationMs}, TraceId={TraceId}",
+        "网关转发完成。Method={Method}, Path={Path}, RouteGroup={RouteGroup}, StatusCode={StatusCode}, DurationSeconds={DurationSeconds}, TraceId={TraceId}",
         context.Request.Method,
         context.Request.Path.Value,
         routeGroup,
         context.Response.StatusCode,
-        durationMs,
+        durationSeconds,
         activity?.TraceId.ToString());
 });
 
