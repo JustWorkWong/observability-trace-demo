@@ -57,10 +57,13 @@ AppHost 启动后会拉起：
 
 - Grafana: [http://localhost:33000](http://localhost:33000)
 - Prometheus: [http://localhost:9090](http://localhost:9090)
-- Loki API: [http://localhost:3100](http://localhost:3100)
-- Tempo API: [http://localhost:3200](http://localhost:3200)
 - OTel Collector gRPC: `http://localhost:14318`
 - OTel Collector HTTP: 预留为 `14319`，当前 Compose 默认不对宿主机暴露
+
+说明：
+
+- 当前版本里，`Loki` 和 `Tempo` 主要通过容器内部网络给 `Grafana` 使用，默认不对宿主机暴露 HTTP 入口。
+- 你日常查看日志和链路时，直接从 `Grafana -> Explore` 进入即可。
 
 Grafana 默认账号：
 
@@ -75,15 +78,21 @@ admin / admin
 先初始化库存：
 
 ```powershell
-curl -X POST http://localhost:5000/api/inventory/seed
+Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:<gateway-port>/api/inventory/seed'
 ```
 
-如果 AppHost 分配了不同端口，请以控制台显示地址为准。
+这里的 `<gateway-port>` 不是固定值。
+
+因为 `AppHost` 会在本机动态分配端口，所以请从下面任一位置确认网关地址：
+
+1. `AppHost` 控制台输出
+2. `Aspire Dashboard`
+3. `Gateway` 启动日志里的 `Now listening on: http://localhost:xxxxx`
 
 ### 4.2 第一次查库存
 
 ```powershell
-curl http://localhost:5000/api/inventory/sku-1
+Invoke-RestMethod -Method Get -Uri 'http://127.0.0.1:<gateway-port>/api/inventory/sku-1'
 ```
 
 预期：
@@ -95,9 +104,8 @@ curl http://localhost:5000/api/inventory/sku-1
 ### 4.3 创建订单
 
 ```powershell
-curl -X POST http://localhost:5000/api/orders ^
-  -H "Content-Type: application/json" ^
-  -d "{\"sku\":\"sku-1\",\"quantity\":2,\"customerId\":\"customer-1\"}"
+$body = '{"sku":"sku-1","quantity":2,"customerId":"customer-1"}'
+Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:<gateway-port>/api/orders' -ContentType 'application/json' -Body $body
 ```
 
 预期：
@@ -111,9 +119,8 @@ curl -X POST http://localhost:5000/api/orders ^
 ### 4.4 失败场景
 
 ```powershell
-curl -X POST http://localhost:5000/api/orders ^
-  -H "Content-Type: application/json" ^
-  -d "{\"sku\":\"sku-3\",\"quantity\":2,\"customerId\":\"customer-2\"}"
+$body = '{"sku":"sku-3","quantity":2,"customerId":"customer-2"}'
+Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:<gateway-port>/api/orders' -ContentType 'application/json' -Body $body
 ```
 
 预期：
@@ -130,15 +137,15 @@ curl -X POST http://localhost:5000/api/orders ^
 进入：
 
 ```text
-Dashboards -> Observability Trace Demo
+Dashboards -> 可观测性链路演示
 ```
 
 建议先看：
 
-- `System Overview`
-- `Order Flow`
-- `Inventory Cache View`
-- `Collector Pipeline`
+- `系统总览`
+- `订单链路`
+- `库存缓存视图`
+- `Collector 管道`
 
 ### 5.2 看 Trace
 
@@ -222,3 +229,5 @@ docker compose down -v
 - [docs/observability-metrics-catalog.md](/E:/wfcodes/observability-trace-demo/docs/observability-metrics-catalog.md)
 - [docs/observability-trace-walkthrough.md](/E:/wfcodes/observability-trace-demo/docs/observability-trace-walkthrough.md)
 - [docs/observability-log-guide.md](/E:/wfcodes/observability-trace-demo/docs/observability-log-guide.md)
+- [infra/README.md](/E:/wfcodes/observability-trace-demo/infra/README.md)
+- [infra/observability/README.md](/E:/wfcodes/observability-trace-demo/infra/observability/README.md)

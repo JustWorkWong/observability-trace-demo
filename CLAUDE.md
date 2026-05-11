@@ -12,8 +12,10 @@ observability-trace-demo/
 │  ├─ observability-metrics-catalog.md
 │  └─ observability-trace-walkthrough.md
 ├─ infra/
+│  ├─ README.md
 │  └─ observability/
 │     ├─ .env
+│     ├─ README.md
 │     ├─ docker-compose.yml
 │     ├─ grafana/
 │     ├─ loki/
@@ -58,6 +60,13 @@ observability-trace-demo/
 - `infra/observability`
   - 独立的观测基础设施目录。
   - 使用 Docker Compose 拉起 `Grafana / Prometheus / Loki / Tempo / OTel Collector`。
+- `infra/README.md`
+  - 给普通读者看的基础设施总览。
+  - 解释为什么仓库要把平台层单独放进 `infra/`。
+
+- `infra/observability/README.md`
+  - 给普通读者看的观测平台总览。
+  - 解释 `.env`、`docker-compose.yml`、Collector、Prometheus、Loki、Tempo、Grafana 各自扮演什么角色。
 
 - `tests/*`
   - 核心业务行为测试。
