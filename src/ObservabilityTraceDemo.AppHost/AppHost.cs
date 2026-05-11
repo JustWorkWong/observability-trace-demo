@@ -19,7 +19,10 @@ var otlpEndpoint = builder.Configuration["Observability:OtlpEndpoint"] ?? "http:
 var inventoryService = builder.AddProject<Projects.ObservabilityTraceDemo_InventoryService>("inventoryservice")
     .WithReference(observabilityDatabase)
     .WithReference(redis)
-    .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", otlpEndpoint)
+    // 不覆盖 Aspire 注入的 OTEL_EXPORTER_OTLP_ENDPOINT，
+    // 让服务继续把 telemetry 发给 Aspire Dashboard。
+    // 这里单独补一个“第二出口”，让同一份 telemetry 也进外部 Collector / Grafana 栈。
+    .WithEnvironment("OpenTelemetry__CollectorOtlpEndpoint", otlpEndpoint)
     .WaitFor(observabilityDatabase)
     .WaitFor(redis);
 
@@ -29,14 +32,14 @@ var orderService = builder.AddProject<Projects.ObservabilityTraceDemo_OrderServi
     // 如果不显式引用，订单服务运行时拿不到 inventoryservice 的发现信息，
     // HttpClient 会把它当成普通主机名解析，最终退化成 inventoryservice:443 并报“主机不存在”。
     .WithReference(inventoryService)
-    .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", otlpEndpoint)
+    .WithEnvironment("OpenTelemetry__CollectorOtlpEndpoint", otlpEndpoint)
     .WaitFor(observabilityDatabase)
     .WaitFor(inventoryService);
 
 builder.AddProject<Projects.ObservabilityTraceDemo_Gateway>("gateway")
     .WithReference(orderService)
     .WithReference(inventoryService)
-    .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", otlpEndpoint)
+    .WithEnvironment("OpenTelemetry__CollectorOtlpEndpoint", otlpEndpoint)
     .WaitFor(orderService)
     .WaitFor(inventoryService);
 

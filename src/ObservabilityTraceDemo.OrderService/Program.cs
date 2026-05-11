@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.ComponentModel;
 using Microsoft.EntityFrameworkCore;
 using ObservabilityTraceDemo.OrderService.Application;
 using ObservabilityTraceDemo.OrderService.Infrastructure;
@@ -18,6 +19,8 @@ builder.AddProjectOpenTelemetry(
     meters: [OrderTelemetry.MeterName],
     includeEntityFramework: true);
 
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 builder.Services.AddProblemDetails();
 
 builder.Services.AddHttpClient<IInventoryClient, InventoryHttpClient>(client =>
@@ -43,6 +46,13 @@ builder.Services.AddScoped<OrderSchemaInitializer>();
 var app = builder.Build();
 
 await app.InitializeOrderSchemaAsync();
+
+app.UseSwagger();
+app.UseSwaggerUI(options =>
+{
+    options.DocumentTitle = "OrderService Swagger";
+    options.RoutePrefix = "swagger";
+});
 
 app.UseExceptionHandler();
 app.MapDefaultEndpoints();
@@ -83,7 +93,12 @@ app.MapPost("/api/orders", async (
             result.AvailableQuantity,
             null,
             Activity.Current?.TraceId.ToString()));
-});
+})
+.WithTags("订单接口")
+.WithSummary("创建订单")
+.WithDescription("调用库存服务校验库存，成功后写入订单表，并返回订单结果。")
+.Produces<CreateOrderHttpResponse>(StatusCodes.Status201Created)
+.Produces<CreateOrderHttpResponse>(StatusCodes.Status400BadRequest);
 
 app.Run();
 
@@ -101,7 +116,17 @@ internal static class OrderServiceStartupExtensions
     }
 }
 
-public sealed record CreateOrderHttpRequest(string Sku, int Quantity, string CustomerId);
+public sealed class CreateOrderHttpRequest
+{
+    [DefaultValue("sku-1")]
+    public string Sku { get; init; } = "sku-1";
+
+    [DefaultValue(2)]
+    public int Quantity { get; init; } = 2;
+
+    [DefaultValue("customer-1")]
+    public string CustomerId { get; init; } = "customer-1";
+}
 
 public sealed record CreateOrderHttpResponse(
     Guid OrderId,

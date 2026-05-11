@@ -13,6 +13,8 @@ builder.AddProjectOpenTelemetry(
     meters: [InventoryTelemetry.MeterName],
     includeEntityFramework: true);
 
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 builder.Services.AddProblemDetails();
 
 builder.Services.AddDbContext<InventoryDbContext>(options =>
@@ -40,6 +42,13 @@ var app = builder.Build();
 
 await app.InitializeInventorySchemaAsync();
 
+app.UseSwagger();
+app.UseSwaggerUI(options =>
+{
+    options.DocumentTitle = "InventoryService Swagger";
+    options.RoutePrefix = "swagger";
+});
+
 app.UseExceptionHandler();
 app.MapDefaultEndpoints();
 app.MapGet("/", () => Results.Ok(new
@@ -60,7 +69,11 @@ app.MapGet("/api/inventory/{sku}", async (
         result.Sku,
         result.AvailableQuantity,
         Activity.Current?.TraceId.ToString()));
-});
+})
+.WithTags("库存接口")
+.WithSummary("查询库存")
+.WithDescription("优先读取 Redis，未命中时回源 PostgreSQL，并在返回前回填缓存。")
+.Produces<InventoryLookupHttpResponse>(StatusCodes.Status200OK);
 
 app.MapPost("/api/inventory/seed", async (
     IInventoryRepository repository,
@@ -93,7 +106,11 @@ app.MapPost("/api/inventory/seed", async (
         items = seedItems.Length,
         traceId = Activity.Current?.TraceId.ToString()
     });
-});
+})
+.WithTags("库存接口")
+.WithSummary("写入演示库存种子")
+.WithDescription("向库存表写入默认演示数据，并同步刷新 Redis 缓存。")
+.Produces(StatusCodes.Status200OK);
 
 app.Run();
 

@@ -192,10 +192,8 @@ public static class Extensions
          * 2. 本地 docker compose 的 Collector 对外暴露端口就是 localhost:14318；
          * 3. 后续切换到其他 collector 或云端网关时，不用改业务代码。
          *------------------------------------------------------------------------*/
-        var endpoint = ResolveOtlpEndpoint(builder.Configuration);
-        var useOtlpExporter = !string.IsNullOrWhiteSpace(endpoint);
-
-        if (useOtlpExporter)
+        var endpoints = ResolveOtlpEndpoints(builder.Configuration);
+        foreach (var endpoint in endpoints)
         {
             builder.Services.AddOpenTelemetry()
                 .WithMetrics(metrics =>
@@ -275,21 +273,42 @@ public static class Extensions
 
     private static void ConfigureOtlpLoggingExporter(IConfiguration configuration, OpenTelemetryLoggerOptions logging)
     {
-        var endpoint = ResolveOtlpEndpoint(configuration);
-        if (string.IsNullOrWhiteSpace(endpoint))
+        foreach (var endpoint in ResolveOtlpEndpoints(configuration))
+        {
+            logging.AddOtlpExporter(exporter =>
+            {
+                exporter.Endpoint = new Uri(endpoint);
+            });
+        }
+    }
+
+    private static IReadOnlyList<string> ResolveOtlpEndpoints(IConfiguration configuration)
+    {
+        var endpoints = new List<string>();
+
+        // Aspire 运行时通常通过这个环境变量把 telemetry 发回 Aspire Dashboard。
+        AppendEndpointIfPresent(endpoints, configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
+
+        // 这个是我们自定义的“第二出口”，让同一份 telemetry 继续进入外部 Collector。
+        AppendEndpointIfPresent(endpoints, configuration["OpenTelemetry:CollectorOtlpEndpoint"]);
+
+        // 兼容没有 Aspire 时，只配置单一 OtlpEndpoint 的本地运行方式。
+        AppendEndpointIfPresent(endpoints, configuration["OpenTelemetry:OtlpEndpoint"]);
+
+        return endpoints;
+    }
+
+    private static void AppendEndpointIfPresent(ICollection<string> endpoints, string? candidate)
+    {
+        if (string.IsNullOrWhiteSpace(candidate))
         {
             return;
         }
 
-        logging.AddOtlpExporter(exporter =>
+        if (!endpoints.Contains(candidate, StringComparer.OrdinalIgnoreCase))
         {
-            exporter.Endpoint = new Uri(endpoint);
-        });
-    }
-
-    private static string? ResolveOtlpEndpoint(IConfiguration configuration)
-    {
-        return configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] ?? configuration["OpenTelemetry:OtlpEndpoint"];
+            endpoints.Add(candidate);
+        }
     }
 
     private sealed record ResourceOptions(
