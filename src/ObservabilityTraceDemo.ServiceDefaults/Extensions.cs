@@ -7,6 +7,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Configuration;
 using Microsoft.Extensions.ServiceDiscovery;
+using Npgsql;
 using OpenTelemetry;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
@@ -164,6 +165,10 @@ public static class Extensions
 
                 if (includeEntityFramework)
                 {
+                    // EF Core instrumentation 保留 ORM 视角；
+                    // Npgsql instrumentation 补 PostgreSQL 驱动视角，确保 Tempo 里能看到 db.system=postgresql 的 span。
+                    tracing.AddNpgsql();
+
                     tracing.AddEntityFrameworkCoreInstrumentation(options =>
                     {
                         // 演示项目里保留 SQL 文本有助于教学；生产环境应再评估脱敏策略。
@@ -190,6 +195,13 @@ public static class Extensions
                 foreach (var meter in meters)
                 {
                     metrics.AddMeter(meter);
+                }
+
+                if (includeEntityFramework)
+                {
+                    // Npgsql 10 自带 OpenTelemetry metrics。
+                    // 这里补驱动层指标，避免只看到 EF 层行为却看不到 PostgreSQL 连接/命令侧信号。
+                    metrics.AddNpgsqlInstrumentation();
                 }
             });
 

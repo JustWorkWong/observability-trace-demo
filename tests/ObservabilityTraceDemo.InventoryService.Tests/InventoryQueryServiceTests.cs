@@ -60,6 +60,11 @@ public sealed class InventoryQueryServiceTests
             SetCalls.Add(snapshot);
             return Task.CompletedTask;
         }
+
+        public Task RemoveAsync(string sku, CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class FakeInventoryRepository : IInventoryRepository

@@ -13,6 +13,8 @@ public interface IInventoryCache
     Task<InventorySnapshot?> GetAsync(string sku, CancellationToken cancellationToken);
 
     Task SetAsync(InventorySnapshot snapshot, CancellationToken cancellationToken);
+
+    Task RemoveAsync(string sku, CancellationToken cancellationToken);
 }
 
 public interface IInventoryRepository

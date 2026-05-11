@@ -18,7 +18,9 @@ gateway.route
 
 ## 2. 首次请求
 
-首次请求通常是冷缓存：
+先调用 `POST /api/inventory/seed`。这个接口会写入 PostgreSQL，并清掉对应 Redis 缓存。
+
+随后第一次查询同一 SKU 时就是冷缓存：
 
 - `inventory.cache.read`
   - `cache.hit = false`
@@ -82,6 +84,13 @@ Explore -> Tempo
 ### 问题四：是不是数据库回源拖慢
 
 看 InventoryService 里是否出现数据库 span，以及持续时间是否异常。
+
+如果看不到数据库 span，先确认：
+
+1. 是否刚执行过 `POST /api/inventory/seed`
+2. 是否查询的是 `sku-1` / `sku-2` / `sku-3`
+3. 是否已经第二次查询同一个 SKU。第二次通常会命中 Redis，不再访问 PostgreSQL
+4. 是否在 Tempo 里展开了 client/internal span，而不只是看入口 server span
 
 ## 7. Trace 与日志怎么一起看
 

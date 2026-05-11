@@ -30,6 +30,13 @@ public sealed class RedisInventoryCache(IConnectionMultiplexer connectionMultipl
             .StringSetAsync(BuildCacheKey(snapshot.Sku), payload, expiry: TimeSpan.FromMinutes(10));
     }
 
+    public async Task RemoveAsync(string sku, CancellationToken cancellationToken)
+    {
+        await connectionMultiplexer
+            .GetDatabase()
+            .KeyDeleteAsync(BuildCacheKey(sku));
+    }
+
     public static string BuildCacheKey(string sku)
     {
         return $"inventory:sku:{sku}";

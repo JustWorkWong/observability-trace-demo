@@ -93,9 +93,9 @@ app.MapPost("/api/inventory/seed", async (
     foreach (var item in seedItems)
     {
         await repository.UpsertAsync(item, cancellationToken);
-        await cache.SetAsync(item, cancellationToken);
+        await cache.RemoveAsync(item.Sku, cancellationToken);
         logger.LogInformation(
-            "库存种子写入完成。Sku={Sku}, AvailableQuantity={AvailableQuantity}, TraceId={TraceId}",
+            "库存种子写入完成，并已清理对应缓存。Sku={Sku}, AvailableQuantity={AvailableQuantity}, TraceId={TraceId}",
             item.Sku,
             item.AvailableQuantity,
             Activity.Current?.TraceId.ToString());
@@ -110,7 +110,7 @@ app.MapPost("/api/inventory/seed", async (
 })
 .WithTags("库存接口")
 .WithSummary("写入演示库存种子")
-.WithDescription("向库存表写入默认演示数据，并同步刷新 Redis 缓存。")
+.WithDescription("向库存表写入默认演示数据，并清理对应 Redis 缓存。这样第一次查询会回源 PostgreSQL，第二次查询才命中 Redis。")
 .Produces(StatusCodes.Status200OK);
 
 app.Run();

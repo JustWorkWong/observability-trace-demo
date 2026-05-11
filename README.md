@@ -89,6 +89,9 @@ Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:<gateway-port>/api/invento
 2. `Aspire Dashboard`
 3. `Gateway` 启动日志里的 `Now listening on: http://localhost:xxxxx`
 
+这个接口会把演示库存写入 PostgreSQL，并清理对应 Redis 缓存。
+这样下一步第一次查 `sku-1` 时会先缓存未命中，再回源 PostgreSQL，最后回填 Redis。
+
 ### 4.2 第一次查库存
 
 ```powershell
