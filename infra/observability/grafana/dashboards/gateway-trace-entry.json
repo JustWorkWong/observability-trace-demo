@@ -1,0 +1,48 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 0,
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [
+        { "expr": "sum(rate(gateway_requests_total[5m])) by (gateway_route_group, http_status_code)", "legendFormat": "{{gateway_route_group}} / {{http_status_code}}", "refId": "A" }
+      ],
+      "title": "网关请求量按路由分组",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(gateway_request_duration_ms_bucket[5m])) by (le, gateway_route_group))", "legendFormat": "{{gateway_route_group}}", "refId": "A" }
+      ],
+      "title": "网关转发耗时 P95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "id": 3,
+      "options": {
+        "content": "在 Explore -> Tempo 中按 `service.name = gateway` 搜索最近 15 分钟 Trace。\\n\\n如果你想从日志反查 Trace，请去 Explore -> Loki 搜索 `service_name=\\\"gateway\\\"`，再点日志里的 TraceId。",
+        "mode": "markdown"
+      },
+      "title": "Trace 使用说明",
+      "type": "text"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 41,
+  "tags": ["observability", "gateway"],
+  "templating": { "list": [] },
+  "time": { "from": "now-30m", "to": "now" },
+  "title": "网关入口链路",
+  "uid": "gateway-trace-entry",
+  "version": 1
+}

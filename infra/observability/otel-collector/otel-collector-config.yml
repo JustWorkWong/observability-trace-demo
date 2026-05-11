@@ -1,0 +1,66 @@
+# -----------------------------------------------------------------------------
+# OpenTelemetry Collector 是整套观测链路的“信号交换机”。
+# 业务服务只负责把 Trace / Metric / Log 发到 Collector；
+# Collector 再负责按信号类型把它们分发到 Tempo / Prometheus / Loki。
+# -----------------------------------------------------------------------------
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        # 业务服务默认用 OTLP gRPC 发信号进来。
+        endpoint: 0.0.0.0:4317
+      http:
+        # 预留 OTLP HTTP 接口，便于后续做协议对比实验。
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    # 批处理可以减少 exporter 发送次数，降低演示环境里的抖动。
+    timeout: 1s
+    send_batch_size: 1024
+
+exporters:
+  otlp/tempo:
+    # Trace 导出到 Tempo。Grafana 最终通过 Tempo datasource 查这部分链路。
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+
+  otlphttp/loki:
+    # Log 导出到 Loki 的 OTLP 接口。
+    # 这样业务日志里的结构化字段、TraceId、Scope 等元数据都能尽量保留下来。
+    endpoint: http://loki:3100/otlp
+    tls:
+      insecure: true
+
+  prometheus:
+    # Metric 不直接写入 Prometheus，而是由 Collector 暴露一个 Prometheus scrape 端口。
+    # 这样 Prometheus 继续扮演“拉模式”的时序库角色，业务服务则统一走 OTLP 推送到 Collector。
+    endpoint: 0.0.0.0:9464
+    resource_to_telemetry_conversion:
+      # 打开后，service.name / service.namespace 这类 Resource 标签会进入 Prometheus 标签维度。
+      enabled: true
+
+service:
+  telemetry:
+    metrics:
+      # Collector 自己的内部指标端口。
+      # 这里能看到 receiver 接收量、processor 批处理量、exporter 发送成功/失败。
+      address: 0.0.0.0:8888
+
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp/tempo]
+
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/loki]
+
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [prometheus]

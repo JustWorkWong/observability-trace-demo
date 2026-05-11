@@ -1,0 +1,37 @@
+# -----------------------------------------------------------------------------
+# Prometheus 负责抓取两类东西：
+# 1. Collector 暴露出来的“应用指标总出口”；
+# 2. 观测基础设施自己的健康指标。
+# -----------------------------------------------------------------------------
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: collector-app-metrics
+    # 这是最关键的抓取任务：所有业务服务通过 OTLP 发到 Collector 的指标，最终都从这里暴露出来。
+    static_configs:
+      - targets: ["otel-collector:9464"]
+
+  - job_name: collector-self
+    # 这组指标用于判断 Collector 自己是否接收过多、导出失败、或处理延迟抬升。
+    static_configs:
+      - targets: ["otel-collector:8888"]
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["prometheus:9090"]
+
+  - job_name: grafana
+    # 需要配合 GF_METRICS_ENABLED=true。
+    static_configs:
+      - targets: ["grafana:3000"]
+
+  - job_name: loki
+    static_configs:
+      - targets: ["loki:3100"]
+
+  - job_name: tempo
+    static_configs:
+      - targets: ["tempo:3200"]

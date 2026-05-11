@@ -1,0 +1,224 @@
+# Observability Trace Demo
+
+这是一个面向教学与演示的本地分布式可观测性仓库。
+
+目标不是只把服务跑起来，而是把下面这条链路完整看清楚：
+
+`Client -> Gateway -> OrderService -> InventoryService -> Redis -> PostgreSQL`
+
+你可以在这套仓库里同时看到：
+
+- `Trace`：一次请求经过了哪些服务、缓存、数据库
+- `Metric`：吞吐、错误率、P95/P99、缓存命中率、Collector 接收/导出量
+- `Log`：结构化业务日志，以及如何通过 `TraceId` 反查 Trace
+
+## 1. 仓库组成
+
+- `src/ObservabilityTraceDemo.AppHost`
+  - 编排业务服务、PostgreSQL、Redis
+- `src/ObservabilityTraceDemo.Gateway`
+  - YARP 网关入口
+- `src/ObservabilityTraceDemo.OrderService`
+  - 下单与订单落库
+- `src/ObservabilityTraceDemo.InventoryService`
+  - 缓存读取、数据库回源、库存种子
+- `infra/observability`
+  - Collector + Prometheus + Loki + Tempo + Grafana
+
+## 2. 启动顺序
+
+### 第一步：启动观测基础设施
+
+在仓库根目录执行：
+
+```powershell
+cd E:\wfcodes\observability-trace-demo\infra\observability
+docker compose up -d
+```
+
+### 第二步：启动业务拓扑
+
+新开一个终端，在仓库根目录执行：
+
+```powershell
+cd E:\wfcodes\observability-trace-demo
+dotnet run --project .\src\ObservabilityTraceDemo.AppHost\
+```
+
+AppHost 启动后会拉起：
+
+- Gateway
+- OrderService
+- InventoryService
+- PostgreSQL
+- Redis
+
+## 3. 访问入口
+
+- Grafana: [http://localhost:33000](http://localhost:33000)
+- Prometheus: [http://localhost:9090](http://localhost:9090)
+- Loki API: [http://localhost:3100](http://localhost:3100)
+- Tempo API: [http://localhost:3200](http://localhost:3200)
+- OTel Collector gRPC: `http://localhost:14318`
+- OTel Collector HTTP: 预留为 `14319`，当前 Compose 默认不对宿主机暴露
+
+Grafana 默认账号：
+
+```text
+admin / admin
+```
+
+## 4. 演示步骤
+
+### 4.1 写入库存种子
+
+先初始化库存：
+
+```powershell
+curl -X POST http://localhost:5000/api/inventory/seed
+```
+
+如果 AppHost 分配了不同端口，请以控制台显示地址为准。
+
+### 4.2 第一次查库存
+
+```powershell
+curl http://localhost:5000/api/inventory/sku-1
+```
+
+预期：
+
+- `InventoryService` 出现一次缓存未命中
+- 然后出现 PostgreSQL 回源
+- 最后回填 Redis
+
+### 4.3 创建订单
+
+```powershell
+curl -X POST http://localhost:5000/api/orders ^
+  -H "Content-Type: application/json" ^
+  -d "{\"sku\":\"sku-1\",\"quantity\":2,\"customerId\":\"customer-1\"}"
+```
+
+预期：
+
+- Gateway 产生入口 span
+- OrderService 产生 `order.create`
+- OrderService 通过 `HttpClient` 调用 InventoryService
+- InventoryService 命中缓存或回源数据库
+- OrderService 将订单写入 PostgreSQL
+
+### 4.4 失败场景
+
+```powershell
+curl -X POST http://localhost:5000/api/orders ^
+  -H "Content-Type: application/json" ^
+  -d "{\"sku\":\"sku-3\",\"quantity\":2,\"customerId\":\"customer-2\"}"
+```
+
+预期：
+
+- 返回库存不足
+- `orders_failed_total` 增加
+- Trace 中对应 span 为 error
+- Loki 中能看到失败日志
+
+## 5. 在 Grafana 里怎么看
+
+### 5.1 看指标
+
+进入：
+
+```text
+Dashboards -> Observability Trace Demo
+```
+
+建议先看：
+
+- `System Overview`
+- `Order Flow`
+- `Inventory Cache View`
+- `Collector Pipeline`
+
+### 5.2 看 Trace
+
+进入：
+
+```text
+Explore -> Tempo
+```
+
+可按这些条件查：
+
+- `service.name = gateway`
+- `service.name = orderservice`
+- `service.name = inventoryservice`
+
+### 5.3 看日志
+
+进入：
+
+```text
+Explore -> Loki
+```
+
+可先试：
+
+```logql
+{service_name="orderservice"}
+```
+
+或：
+
+```logql
+{service_name="inventoryservice"}
+```
+
+日志正文里带有：
+
+- `TraceId=...`
+- `Sku=...`
+- `AvailableQuantity=...`
+
+## 6. 验证命令
+
+### 6.1 测试
+
+```powershell
+dotnet test .\tests\ObservabilityTraceDemo.OrderService.Tests\ -m:1 -p:UseSharedCompilation=false
+dotnet test .\tests\ObservabilityTraceDemo.InventoryService.Tests\ -m:1 -p:UseSharedCompilation=false
+```
+
+### 6.2 构建
+
+```powershell
+dotnet build .\ObservabilityTraceDemo.sln -m:1 -p:UseSharedCompilation=false
+```
+
+### 6.3 Compose 配置校验
+
+```powershell
+cd .\infra\observability
+docker compose config
+```
+
+## 7. 停止与清理
+
+停止观测栈：
+
+```powershell
+cd E:\wfcodes\observability-trace-demo\infra\observability
+docker compose down
+```
+
+清理观测栈数据卷：
+
+```powershell
+docker compose down -v
+```
+
+## 8. 推荐阅读
+
+- [docs/observability-metrics-catalog.md](/E:/wfcodes/observability-trace-demo/docs/observability-metrics-catalog.md)
+- [docs/observability-trace-walkthrough.md](/E:/wfcodes/observability-trace-demo/docs/observability-trace-walkthrough.md)
+- [docs/observability-log-guide.md](/E:/wfcodes/observability-trace-demo/docs/observability-log-guide.md)

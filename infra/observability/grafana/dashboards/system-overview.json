@@ -1,0 +1,59 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        { "expr": "sum(up{job=~\"collector-app-metrics|collector-self|grafana|loki|tempo|prometheus\"})", "legendFormat": "活跃目标数", "refId": "A" }
+      ],
+      "title": "存活目标总数",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "id": 2,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
+      "targets": [
+        { "expr": "sum(rate(gateway_requests_total[5m])) by (gateway_route_group)", "legendFormat": "{{gateway_route_group}}", "refId": "A" },
+        { "expr": "sum(rate(orders_created_total[5m]))", "legendFormat": "orders_created_total", "refId": "B" }
+      ],
+      "title": "入口吞吐与业务吞吐",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "id": 3,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(gateway_request_duration_ms_bucket[5m])) by (le, gateway_route_group))", "legendFormat": "gateway p95 {{gateway_route_group}}", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum(rate(order_create_duration_ms_bucket[5m])) by (le))", "legendFormat": "order p95", "refId": "B" },
+        { "expr": "histogram_quantile(0.95, sum(rate(inventory_lookup_duration_ms_bucket[5m])) by (le))", "legendFormat": "inventory p95", "refId": "C" }
+      ],
+      "title": "关键耗时 P95",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 41,
+  "style": "dark",
+  "tags": ["observability", "overview"],
+  "templating": { "list": [] },
+  "time": { "from": "now-30m", "to": "now" },
+  "timezone": "",
+  "title": "系统总览",
+  "uid": "system-overview",
+  "version": 1
+}

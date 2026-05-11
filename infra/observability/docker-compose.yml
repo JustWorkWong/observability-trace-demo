@@ -1,0 +1,109 @@
+name: observability-trace-demo
+
+services:
+  grafana:
+    # 固定 Grafana 镜像版本，避免 latest 带来的面板兼容漂移。
+    image: grafana/grafana:12.2.0-ubuntu
+    container_name: otd-grafana
+    restart: unless-stopped
+    ports:
+      - "${GRAFANA_PORT}:3000"
+    environment:
+      # 演示环境统一使用 admin/admin，避免把关注点放在账号体系上。
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      # 让 Grafana 默认使用简体中文界面。
+      # 这里使用 zh-Hans，是因为 Grafana 的语言配置按 IETF 语言标签工作。
+      # 注意：Grafana 的汉化不是所有页面 100% 全覆盖，核心导航、Dashboard 浏览和部分设置页会优先显示中文。
+      GF_USERS_DEFAULT_LANGUAGE: zh-Hans
+      # 打开 Grafana 自身指标，便于 Prometheus 抓取平台健康信息。
+      GF_METRICS_ENABLED: "true"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      # provisioning 目录用于自动加载 datasource 和 dashboards。
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+    networks:
+      - observability
+
+  prometheus:
+    image: prom/prometheus:v3.11.3
+    container_name: otd-prometheus
+    restart: unless-stopped
+    ports:
+      - "${PROMETHEUS_PORT}:9090"
+    command:
+      # 读取我们手写的抓取配置。
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      # 保留 exemplar，有助于后续把指标点位和 Trace 关联起来。
+      - "--enable-feature=exemplar-storage"
+      # 本地演示保留 7 天，足够重复验证。
+      - "--storage.tsdb.retention.time=7d"
+      - "--web.enable-lifecycle"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - observability
+
+  loki:
+    image: grafana/loki:3.5.3
+    container_name: otd-loki
+    restart: unless-stopped
+    command:
+      - "-config.file=/etc/loki/loki-config.yml"
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki-data:/loki
+    networks:
+      - observability
+
+  tempo:
+    image: grafana/tempo:2.8.2
+    container_name: otd-tempo
+    restart: unless-stopped
+    # Tempo 只需要 Grafana 和 Collector 在容器网络里访问，不强制暴露给宿主机。
+    command:
+      - "-config.file=/etc/tempo/tempo-config.yml"
+    volumes:
+      - ./tempo/tempo-config.yml:/etc/tempo/tempo-config.yml:ro
+      - tempo-data:/var/tempo
+    networks:
+      - observability
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.122.1
+    container_name: otd-otel-collector
+    restart: unless-stopped
+    command:
+      - "--config=/etc/otelcol-contrib/otel-collector-config.yml"
+    ports:
+      # 业务服务默认把 OTLP gRPC 发到宿主机 localhost:14318。
+      - "${OTEL_COLLECTOR_GRPC_PORT}:4317"
+      # Prometheus 从这里抓“应用指标聚合出口”。
+      - "${OTEL_COLLECTOR_PROM_PORT}:9464"
+      # Prometheus 也会从这里抓 Collector 自己的内部指标。
+      - "${OTEL_COLLECTOR_SELF_METRICS_PORT}:8888"
+    volumes:
+      - ./otel-collector/otel-collector-config.yml:/etc/otelcol-contrib/otel-collector-config.yml:ro
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+    networks:
+      - observability
+
+networks:
+  observability:
+    driver: bridge
+
+volumes:
+  grafana-data:
+  loki-data:
+  prometheus-data:
+  tempo-data:

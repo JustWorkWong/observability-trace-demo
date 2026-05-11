@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: observability-trace-demo
+    orgId: 1
+    folder: 可观测性链路演示
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    options:
+      path: /var/lib/grafana/dashboards

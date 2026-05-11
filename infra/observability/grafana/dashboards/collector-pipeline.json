@@ -1,0 +1,54 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 0,
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [
+        { "expr": "sum(rate(otelcol_receiver_accepted_spans[5m]))", "legendFormat": "accepted spans", "refId": "A" },
+        { "expr": "sum(rate(otelcol_receiver_accepted_metric_points[5m]))", "legendFormat": "accepted metric points", "refId": "B" },
+        { "expr": "sum(rate(otelcol_receiver_accepted_log_records[5m]))", "legendFormat": "accepted logs", "refId": "C" }
+      ],
+      "title": "Collector 接收量",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "targets": [
+        { "expr": "sum(rate(otelcol_exporter_sent_spans[5m]))", "legendFormat": "sent spans", "refId": "A" },
+        { "expr": "sum(rate(otelcol_exporter_sent_metric_points[5m]))", "legendFormat": "sent metric points", "refId": "B" },
+        { "expr": "sum(rate(otelcol_exporter_sent_log_records[5m]))", "legendFormat": "sent logs", "refId": "C" }
+      ],
+      "title": "Collector 导出成功量",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "id": 3,
+      "targets": [
+        { "expr": "sum(rate(otelcol_exporter_send_failed_spans[5m]))", "legendFormat": "failed spans", "refId": "A" },
+        { "expr": "sum(rate(otelcol_exporter_send_failed_metric_points[5m]))", "legendFormat": "failed metric points", "refId": "B" },
+        { "expr": "sum(rate(otelcol_exporter_send_failed_log_records[5m]))", "legendFormat": "failed logs", "refId": "C" }
+      ],
+      "title": "Collector 导出失败量",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 41,
+  "tags": ["observability", "collector"],
+  "templating": { "list": [] },
+  "time": { "from": "now-30m", "to": "now" },
+  "title": "Collector 管道",
+  "uid": "collector-pipeline",
+  "version": 1
+}

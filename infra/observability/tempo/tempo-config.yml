@@ -1,0 +1,35 @@
+# -----------------------------------------------------------------------------
+# Tempo 负责收 Trace。
+# 这里用最简本地文件后端，目标是让 Trace 可查询、可跳转，不追求生产级高可用。
+# -----------------------------------------------------------------------------
+
+server:
+  http_listen_port: 3200
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+ingester:
+  max_block_duration: 5m
+
+compactor:
+  compaction:
+    block_retention: 24h
+
+storage:
+  trace:
+    backend: local
+    local:
+      path: /var/tempo/traces
+
+metrics_generator:
+  registry:
+    external_labels:
+      source: tempo
+      cluster: observability-trace-demo
