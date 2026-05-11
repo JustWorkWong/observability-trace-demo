@@ -29,7 +29,48 @@ storage:
       path: /var/tempo/traces
 
 metrics_generator:
+  # ---------------------------------------------------------------------------
+  # TraceQL metrics 依赖 metrics-generator。
+  # Grafana 在 Explore / Drilldown 中执行 `{...} | rate() by(...)` 时，
+  # Tempo 会去 metrics-generator ring 里找可用 generator。
+  # 如果没有 ring，Grafana 会报：error finding generators ... empty ring。
+  # 本地单实例部署使用 inmemory ring 即可，不需要 memberlist / consul / etcd。
+  # ---------------------------------------------------------------------------
+  ring:
+    kvstore:
+      store: inmemory
+
   registry:
     external_labels:
       source: tempo
       cluster: observability-trace-demo
+
+  # ---------------------------------------------------------------------------
+  # local_blocks 是 TraceQL metrics 的核心处理器。
+  # 它会把近期 span 暂存在本地 block 中，供 `rate()`、`count_over_time()`、
+  # `quantile_over_time()` 这类 TraceQL metrics 函数查询。
+  # filter_server_spans=false 表示 demo 中所有 span 都可参与计算，
+  # 便于观察 Gateway / Service / Redis / PostgreSQL 的完整链路。
+  # ---------------------------------------------------------------------------
+  processor:
+    local_blocks:
+      filter_server_spans: false
+
+  # local_blocks 需要本地 traces WAL；路径挂在 tempo-data volume 下。
+  traces_storage:
+    path: /var/tempo/generator/traces
+
+  # metrics-generator 自身的 WAL 路径。即使当前不 remote_write 到 Prometheus，
+  # 也保留该目录，便于后续开启 span-metrics / service-graphs。
+  storage:
+    path: /var/tempo/generator/wal
+
+# ---------------------------------------------------------------------------
+# 激活 local-blocks processor。
+# 没有这个 override，Tempo 可以正常存储和查询 trace，
+# 但 TraceQL metrics 查询（例如 `| rate() by(resource.service.name)`）不可用。
+# ---------------------------------------------------------------------------
+overrides:
+  defaults:
+    metrics_generator:
+      processors: ["local-blocks"]
