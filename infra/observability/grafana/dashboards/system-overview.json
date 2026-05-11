@@ -96,7 +96,7 @@
       {
         "current": { "selected": true, "text": "All", "value": "$__all" },
         "datasource": { "type": "prometheus", "uid": "prometheus" },
-        "definition": "label_values(http_server_request_duration_seconds_count{service_namespace=\"observability-trace-demo\"}, service_name)",
+        "definition": "label_values(dotnet_process_memory_working_set_bytes{service_namespace=\"observability-trace-demo\"}, service_name)",
         "hide": 0,
         "includeAll": true,
         "label": "业务服务",
@@ -104,7 +104,7 @@
         "name": "app_service",
         "options": [],
         "query": {
-          "query": "label_values(http_server_request_duration_seconds_count{service_namespace=\"observability-trace-demo\"}, service_name)",
+          "query": "label_values(dotnet_process_memory_working_set_bytes{service_namespace=\"observability-trace-demo\"}, service_name)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,

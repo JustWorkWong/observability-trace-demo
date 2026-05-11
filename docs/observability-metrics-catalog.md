@@ -228,19 +228,32 @@ sum(rate(inventory_cache_hit_total[5m]))
 
 当前 dashboard 使用 `service_name` 作为业务服务过滤维度。
 
+Grafana 做得到按服务区分，但它和 Aspire Dashboard 的默认视角不同：
+
+- Aspire Dashboard 天然知道每个 Aspire resource，所以默认就是服务卡片。
+- Prometheus 在本仓库里只抓 `otel-collector:9464`，所以 `job` 是 `collector-app-metrics`。
+- 业务服务维度来自 OpenTelemetry Resource，被 Collector 转成 Prometheus 标签 `service_name`。
+
 建议查看顺序：
 
-1. `业务服务总览`：先选服务，确认请求量、错误率、P95。
-2. `订单链路`：看订单成功、失败和下单耗时。
-3. `库存缓存视图`：看缓存命中率和库存查询耗时。
-4. `网关入口链路`：看入口转发状态。
-5. `Collector 管道`：看观测链路自身是否丢数据。
+1. `业务服务总览`：横向比较 gateway / orderservice / inventoryservice。
+2. `按服务指标明细`：选择一个服务，查看该服务的 HTTP、依赖、数据库、Runtime 指标。
+3. `订单链路`：看订单成功、失败和下单耗时。
+4. `库存缓存视图`：看缓存命中率和库存查询耗时。
+5. `网关入口链路`：看入口转发状态。
+6. `Collector 管道`：看观测链路自身是否丢数据。
 
 约定：
 
 - `service_name` 是最常用的服务维度。
 - `job` 是 Prometheus 抓取任务维度，不等于业务服务名。
 - `trace_id` 适合串联单次请求，不适合做 metric label。
+
+Explore 里手写查询时，先加服务过滤：
+
+```promql
+{service_namespace="observability-trace-demo", service_name="orderservice"}
+```
 
 ## 9. 指标设计原则
 

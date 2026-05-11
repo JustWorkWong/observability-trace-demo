@@ -1,0 +1,203 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_request_duration_seconds_count{service_namespace=\"observability-trace-demo\",service_name=\"$service\"}[5m])) by (http_route, http_response_status_code)",
+          "legendFormat": "{{http_route}} {{http_response_status_code}}",
+          "refId": "A"
+        }
+      ],
+      "title": "入口请求吞吐 - 按路由和状态码",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percentunit" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "id": 2,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_request_duration_seconds_count{service_namespace=\"observability-trace-demo\",service_name=\"$service\",http_response_status_code=~\"5..\"}[5m])) / clamp_min(sum(rate(http_server_request_duration_seconds_count{service_namespace=\"observability-trace-demo\",service_name=\"$service\"}[5m])), 0.0001)",
+          "legendFormat": "5xx error ratio",
+          "refId": "A"
+        }
+      ],
+      "title": "入口 5xx 错误率",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "id": 3,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{service_namespace=\"observability-trace-demo\",service_name=\"$service\"}[5m])) by (le, http_route))",
+          "legendFormat": "{{http_route}} p95",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(http_server_request_duration_seconds_bucket{service_namespace=\"observability-trace-demo\",service_name=\"$service\"}[5m])) by (le, http_route))",
+          "legendFormat": "{{http_route}} p99",
+          "refId": "B"
+        }
+      ],
+      "title": "入口耗时 P95 / P99 - 按路由",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "id": 4,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_client_request_duration_seconds_bucket{service_namespace=\"observability-trace-demo\",service_name=\"$service\"}[5m])) by (le, server_address, server_port))",
+          "legendFormat": "{{server_address}}:{{server_port}} p95",
+          "refId": "A"
+        }
+      ],
+      "title": "出站 HTTP 依赖耗时 P95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "id": 5,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(db_client_operation_duration_seconds_bucket{service_namespace=\"observability-trace-demo\",service_name=\"$service\"}[5m])) by (le, db_system_name, server_address, server_port))",
+          "legendFormat": "{{db_system_name}} {{server_address}}:{{server_port}} p95",
+          "refId": "A"
+        }
+      ],
+      "title": "数据库调用耗时 P95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+      "id": 6,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
+      "targets": [
+        {
+          "expr": "sum(db_client_connection_count{service_namespace=\"observability-trace-demo\",service_name=\"$service\"}) by (db_system_name, server_address, server_port)",
+          "legendFormat": "{{db_system_name}} {{server_address}}:{{server_port}}",
+          "refId": "A"
+        }
+      ],
+      "title": "数据库连接数",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percentunit" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 16 },
+      "id": 7,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
+      "targets": [
+        {
+          "expr": "sum(rate(inventory_cache_hit_total{service_namespace=\"observability-trace-demo\",service_name=\"$service\"}[5m])) / clamp_min(sum(rate(inventory_cache_hit_total{service_namespace=\"observability-trace-demo\",service_name=\"$service\"}[5m])) + sum(rate(inventory_cache_miss_total{service_namespace=\"observability-trace-demo\",service_name=\"$service\"}[5m])), 0.0001)",
+          "legendFormat": "cache hit ratio",
+          "refId": "A"
+        }
+      ],
+      "title": "库存缓存命中率",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 16 },
+      "id": 8,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
+      "targets": [
+        {
+          "expr": "dotnet_process_memory_working_set_bytes{service_namespace=\"observability-trace-demo\",service_name=\"$service\"}",
+          "legendFormat": "working set",
+          "refId": "A"
+        }
+      ],
+      "title": ".NET 工作集内存",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 16 },
+      "id": 9,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
+      "targets": [
+        {
+          "expr": "sum(dotnet_thread_pool_thread_count_total{service_namespace=\"observability-trace-demo\",service_name=\"$service\"}) by (service_name)",
+          "legendFormat": "thread pool threads",
+          "refId": "A"
+        }
+      ],
+      "title": ".NET 线程池线程数",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 24 },
+      "id": 10,
+      "options": {
+        "content": "这个 dashboard 把 `service_name` 作为第一维度，接近 Aspire Dashboard 的资源视角。\n\n注意：Prometheus 的 `job` 在本仓库里是 `collector-app-metrics`，因为业务指标统一由 OTel Collector 暴露；真正的服务名在 `service_name` 标签里。\n\n如果在 Explore 里手写查询，请先加：`{service_namespace=\"observability-trace-demo\", service_name=\"具体服务名\"}`。",
+        "mode": "markdown"
+      },
+      "title": "服务维度说明",
+      "type": "text"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 41,
+  "style": "dark",
+  "tags": ["observability", "service", "metrics"],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": false, "text": "gateway", "value": "gateway" },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "definition": "label_values(dotnet_process_memory_working_set_bytes{service_namespace=\"observability-trace-demo\"}, service_name)",
+        "hide": 0,
+        "includeAll": false,
+        "label": "服务",
+        "multi": false,
+        "name": "service",
+        "options": [],
+        "query": {
+          "query": "label_values(dotnet_process_memory_working_set_bytes{service_namespace=\"observability-trace-demo\"}, service_name)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": { "from": "now-30m", "to": "now" },
+  "timezone": "",
+  "title": "按服务指标明细",
+  "uid": "service-metrics",
+  "version": 1
+}

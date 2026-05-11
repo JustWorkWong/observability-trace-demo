@@ -19,6 +19,7 @@ observability-trace-demo/
 │     ├─ README.md
 │     ├─ docker-compose.yml
 │     ├─ grafana/
+│     │  └─ dashboards/service-metrics.json
 │     ├─ loki/
 │     ├─ otel-collector/
 │     ├─ prometheus/

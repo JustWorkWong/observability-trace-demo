@@ -46,13 +46,35 @@ Grafana 是统一展示层。
 
 ## 4. 当前预置的 dashboard
 
-- `系统总览`
+- `业务服务总览`
+- `按服务指标明细`
 - `网关入口链路`
 - `订单链路`
 - `库存缓存视图`
 - `Collector 管道`
 
-## 5. 普通用户最关心的问题
+## 5. 为什么 Grafana 不像 Aspire 自动按服务分组
+
+Aspire Dashboard 是面向 .NET Aspire resource 的本地开发 UI，
+它天然知道 `gateway`、`orderservice`、`inventoryservice` 是三个应用资源。
+
+Grafana 是通用观测平台。Prometheus 抓取本仓库指标时，抓到的是
+`otel-collector:9464` 这个统一出口，所以：
+
+- `job` 是 `collector-app-metrics`
+- 真正的业务服务名在 `service_name` 标签里
+
+因此 Grafana 可以按服务看，但 dashboard 和 PromQL 必须显式使用
+`service_name`。
+
+本仓库提供两个服务视角：
+
+- `业务服务总览`
+  - 横向比较 gateway / orderservice / inventoryservice。
+- `按服务指标明细`
+  - 先选择一个服务，再查看该服务的 HTTP、依赖、数据库、Runtime 指标。
+
+## 6. 普通用户最关心的问题
 
 ### 为什么 Grafana 里能同时看到 Trace / Log / Metric
 
