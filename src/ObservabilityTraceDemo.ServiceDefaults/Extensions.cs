@@ -250,15 +250,24 @@ public static class Extensions
 
     public static WebApplication MapDefaultEndpoints(this WebApplication app)
     {
-        if (app.Environment.IsDevelopment())
-        {
-            app.MapHealthChecks(HealthEndpointPath);
+        /*--------------------------------------------------------------------------
+         * 健康检查端点必须在所有环境暴露。
+         *
+         * 原因：
+         * - Docker Compose / Kubernetes / 负载均衡器都需要稳定的探针地址。
+         * - 如果只在 Development 暴露，生产 readiness/liveness 会误判服务不可用。
+         *
+         * 生产安全边界不应该靠“不注册端点”实现，而应该靠：
+         * - 只在集群内网访问；
+         * - NetworkPolicy / Security Group 限制来源；
+         * - 入口网关不对公网转发这些端点。
+         *------------------------------------------------------------------------*/
+        app.MapHealthChecks(HealthEndpointPath);
 
-            app.MapHealthChecks(AlivenessEndpointPath, new HealthCheckOptions
-            {
-                Predicate = r => r.Tags.Contains("live")
-            });
-        }
+        app.MapHealthChecks(AlivenessEndpointPath, new HealthCheckOptions
+        {
+            Predicate = r => r.Tags.Contains("live")
+        });
 
         return app;
     }

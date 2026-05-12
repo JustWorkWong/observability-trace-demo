@@ -11,7 +11,9 @@ observability-trace-demo/
 ├─ docs/
 │  ├─ observability-log-guide.md
 │  ├─ observability-metrics-catalog.md
-│  └─ observability-trace-walkthrough.md
+│  ├─ observability-trace-walkthrough.md
+│  ├─ production-deployment-configuration.md
+│  └─ production-observability-operations.md
 ├─ infra/
 │  ├─ README.md
 │  └─ observability/
@@ -74,6 +76,10 @@ observability-trace-demo/
 - `tests/*`
   - 核心业务行为测试。
   - 当前覆盖订单创建成败、库存缓存命中与回源逻辑。
+
+- `docs/production-deployment-configuration.md`
+  - 生产部署配置手册。
+  - 说明服务环境变量、Docker Compose、Kubernetes、多实例自动发现、Collector 接入和上线检查清单。
 
 ## 依赖关系
 

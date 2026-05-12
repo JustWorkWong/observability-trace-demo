@@ -317,3 +317,7 @@ TraceId 的价值是：
 8. runbook
 9. SLI / SLO / error budget
 10. 平台自身高可用
+
+部署配置请继续看：
+
+- [production-deployment-configuration.md](/E:/wfcodes/observability-trace-demo/docs/production-deployment-configuration.md)
