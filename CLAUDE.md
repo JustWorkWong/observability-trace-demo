@@ -11,6 +11,7 @@ observability-trace-demo/
 ├─ docs/
 │  ├─ observability-log-guide.md
 │  ├─ observability-metrics-catalog.md
+│  ├─ observability-signals-primer.md
 │  ├─ observability-trace-walkthrough.md
 │  ├─ production-deployment-configuration.md
 │  └─ production-observability-operations.md
@@ -80,6 +81,11 @@ observability-trace-demo/
 - `docs/production-deployment-configuration.md`
   - 生产部署配置手册。
   - 说明服务环境变量、Docker Compose、Kubernetes、多实例自动发现、Collector 接入和上线检查清单。
+
+- `docs/observability-signals-primer.md`
+  - 可观测性入门概念手册。
+  - 系统解释 Trace、Metric、Log、Histogram、Bucket、Percentile、P95/P99、label 和 cardinality 的职责边界。
+  - 作为新读者理解指标字典、Trace 手册和日志手册之前的先导文档。
 
 ## 依赖关系
 

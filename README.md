@@ -230,6 +230,7 @@ docker compose down -v
 
 ## 8. 推荐阅读
 
+- [docs/observability-signals-primer.md](/E:/wfcodes/observability-trace-demo/docs/observability-signals-primer.md)
 - [docs/observability-metrics-catalog.md](/E:/wfcodes/observability-trace-demo/docs/observability-metrics-catalog.md)
 - [docs/observability-trace-walkthrough.md](/E:/wfcodes/observability-trace-demo/docs/observability-trace-walkthrough.md)
 - [docs/observability-log-guide.md](/E:/wfcodes/observability-trace-demo/docs/observability-log-guide.md)
